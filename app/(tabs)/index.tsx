@@ -1,14 +1,31 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import MapView, { Marker, Polyline, UrlTile } from "react-native-maps";
 
-import rutasData from "../../src/data/rutas.json";
+import { rutas } from "../../src/data/rutas";
 import { Ruta } from "../../src/types";
-
-const rutas: Ruta[] = rutasData;
 
 export default function HomeScreen() {
   const [rutaActiva, setRutaActiva] = useState<Ruta | null>(null);
+  const mapRef = useRef<MapView | null>(null);
+
+  const seleccionarRuta = (ruta: Ruta) => {
+    setRutaActiva(ruta);
+
+    // Centrar mapa en la trayectoria
+    if (mapRef.current) {
+      mapRef.current.fitToCoordinates(
+        ruta.trayectoria.map((p) => ({
+          latitude: p.lat,
+          longitude: p.lng,
+        })),
+        {
+          edgePadding: { top: 100, right: 50, bottom: 100, left: 50 },
+          animated: true,
+        }
+      );
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -18,12 +35,12 @@ export default function HomeScreen() {
       </View>
 
       {/* Botones de rutas */}
-      <ScrollView horizontal style={styles.menu}>
+      <ScrollView horizontal style={styles.menu} showsHorizontalScrollIndicator={false}>
         {rutas.map((ruta) => (
           <TouchableOpacity
             key={ruta.id}
             style={[styles.button, { backgroundColor: ruta.color }]}
-            onPress={() => setRutaActiva(ruta)}
+            onPress={() => seleccionarRuta(ruta)}
           >
             <Text style={styles.buttonText}>{ruta.nombre}</Text>
           </TouchableOpacity>
@@ -32,6 +49,7 @@ export default function HomeScreen() {
 
       {/* Mapa */}
       <MapView
+        ref={mapRef}
         style={styles.map}
         initialRegion={{
           latitude: 20.1011,
@@ -40,30 +58,37 @@ export default function HomeScreen() {
           longitudeDelta: 0.05,
         }}
       >
-        {/* Base de Carto */}
+        {/* Base Carto */}
         <UrlTile
           urlTemplate="https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           maximumZ={19}
         />
 
-        {/* Dibujar ruta activa */}
+        {/* Ruta activa */}
         {rutaActiva && (
           <>
+            {/* Línea siguiendo calles */}
             <Polyline
-              coordinates={rutaActiva.paradas.map((p) => ({
+              coordinates={rutaActiva.trayectoria.map((p) => ({
                 latitude: p.lat,
                 longitude: p.lng,
               }))}
               strokeColor={rutaActiva.color}
-              strokeWidth={4}
+              strokeWidth={5}
             />
-            {rutaActiva.paradas.map((p, index) => (
-              <Marker
-                key={index}
-                coordinate={{ latitude: p.lat, longitude: p.lng }}
-                title={p.nombre}
-              />
-            ))}
+
+            {/* Paradas (si existen) */}
+            {rutaActiva.paradas.length > 0 &&
+              rutaActiva.paradas.map((p, index) => (
+                <Marker
+                  key={index}
+                  coordinate={{
+                    latitude: p.lat,
+                    longitude: p.lng,
+                  }}
+                  title={p.nombre}
+                />
+              ))}
           </>
         )}
       </MapView>
@@ -73,26 +98,40 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+
   header: {
-    height: 60,
+    height: 65,
     backgroundColor: "#007AFF",
     justifyContent: "center",
     alignItems: "center",
+    elevation: 5,
   },
-  headerText: { color: "white", fontSize: 22, fontWeight: "bold" },
+
+  headerText: {
+    color: "white",
+    fontSize: 24,
+    fontWeight: "bold",
+  },
+
   menu: {
-    maxHeight: 60,
-    paddingVertical: 5,
-    backgroundColor: "#f0f0f0",
+    maxHeight: 65,
+    paddingVertical: 8,
+    backgroundColor: "#f2f2f2",
   },
+
   button: {
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    marginHorizontal: 5,
-    borderRadius: 10,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    marginHorizontal: 6,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
   },
-  buttonText: { color: "white", fontWeight: "bold" },
+
+  buttonText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+
   map: { flex: 1 },
 });

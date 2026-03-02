@@ -1,16 +1,21 @@
-export interface Punto {
+export interface Coordenada {
     lat: number;
     lng: number;
 }
 
-export interface Parada extends Punto {
+export interface Parada {
     nombre: string;
+    lat: number;
+    lng: number;
 }
 
 export interface Ruta {
     id: string;
     nombre: string;
     color: string;
-    trayectoria: Punto[];
+    trayectoria: {
+        lat: number;
+        lng: number;
+    }[];
     paradas: Parada[];
 }
